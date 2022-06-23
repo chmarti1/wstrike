@@ -43,6 +43,37 @@ stream with a write() method.
         logfile.write(logline)
 
 
+def getproc(lockfile):
+    """Retrieve a psutil process instance for the running wstrike
+If wstrike is not found to be running, returns None instead.
+"""
+    if os.path.isfile(lockfile):
+        try:
+            with open(lockfile, 'r') as fd:
+                pid = int(fd.read())
+        except:
+            print('WARNING: Failed to read lockfile: ' + lockfile)
+            print(' attempting removal!')
+            os.remove(lockfile)
+            return None
+        # Recover the process and verify that it is wstrike
+        if psutil.pid_exists(pid):
+            for proc in psutil.process_iter():
+                if proc.pid == pid:
+                    if proc.name() != 'wstrike':
+                        print('WARNING: Found a lock file for process id: ' + str(pid))
+                        print('  Found a different process with that PID: ' + proc.name())
+                    return proc
+            raise Exception('PANIC! psuitl is giving contradictory information about process id: ' + str(pid))
+        # The lockfile exists, but the PID isn't there.
+        print('WARNING: The lock file appears to be out of date: ' + lockfile)
+        print('  attempting removal!')
+        os.remove(lockfile)
+            
+    return None
+            
+
+
 def criterion0(params):
     signal = array.array('h', astream.read(params['buffer']))
     params['amplitude'] = int((max(signal) - min(signal)) / 2)
@@ -148,6 +179,8 @@ if __name__ == '__main__':
 
     # Set the default logfile
     logfile = os.path.expanduser('~/wstrike.log')
+    # The location of a lockfile
+    lockfile = os.path.expanduser('~/.wstrike.lock')
     
     
     # Process command line options
@@ -160,23 +193,21 @@ if __name__ == '__main__':
     # process the actions
     if action == 'help':
         print(helptext)
-        exit()
+        exit(0)
     elif action=='stop':
         # Check for an existing process called wstrike
         # First, check our PID
         mypid = os.getpid()
-        tprocs = []
-        for proc in psutil.process_iter():
-            if 'wstrike' == proc.name() and proc.pid != mypid:
-                tprocs.append(proc)
-                print('Sending SIGTERM to wstrike:' + repr(proc.pid))
-                proc.terminate()
-        # wait for all terminated processes to be done
-        term,alive = psutil.wait_procs(tprocs, timeout=3, callback=lambda proc: print('Process terminated normally:' + repr(proc.pid)))
-        for proc in alive:
-            print('Process is not responding, killing:' + repr(proc.pid))
-            proc.kill()
-        exit()
+        proc = getproc(lockfile)
+        if proc is not None and 'wstrike' == proc.name() and proc.pid != mypid:
+            print('Sending SIGTERM to wstrike:' + repr(proc.pid))
+            proc.terminate()
+            # wait for all terminated processes to be done
+            term,alive = psutil.wait_procs([proc], timeout=3, callback=lambda proc: print('Process terminated normally:' + repr(proc.pid)))
+            for proc in alive:
+                print('Process is not responding, killing:' + repr(proc.pid))
+                proc.kill()
+        exit(0)
         
     elif action == 'status':
         simple = False
@@ -189,16 +220,19 @@ if __name__ == '__main__':
         # Check for an existing process called wstrike
         # First, check our PID
         mypid = os.getpid()
-        if not simple:
-            print('This PID: ' + str(mypid))
-        for proc in psutil.process_iter():
-            if 'wstrike' == proc.name() and proc.pid != mypid:
-                if simple:
-                    print(proc.pid)
-                    exit()
-                else:
-                    print('RUNNING  pid:' + repr(proc.pid))
-        exit()
+        proc = getproc(lockfile)
+        if proc is None:
+            if not simple:
+                print('This PID: ' + str(mypid))
+                print('STOPPED.')
+        else:
+            if simple:
+                print(str(proc.pid))
+            else:
+                print('This PID: ' + str(mypid))
+                print('RUNNING ' + proc.name() + ': ' + str(proc.pid))
+            
+        exit(0)
     elif action == 'debug':
         logfile = sys.stdout
     elif action == 'start':
@@ -208,10 +242,14 @@ if __name__ == '__main__':
         
 
     # Test for a process already running
-    mypid = os.getpid()
-    for proc in psutil.process_iter():
-        if 'wstrike' == proc.name() and proc.pid != mypid:
-            raise Exception('wstrike is already running: ' + repr(proc.pid))
+    # If the lockfile was already created, open it and check to verify
+    # that the PID is real
+    proc = getproc(lockfile)
+    if proc is None:
+        with open(lockfile,'x') as fd:
+            fd.write(str(os.getpid()))
+    else:
+        raise Exception('A wstrike process already appears to be running: ' + str(proc.pid))
     
     # Process the options
     for opt in options:
@@ -230,25 +268,33 @@ if __name__ == '__main__':
     # Use the command line's alsamixer utility
     err = os.system('amixer set Capture 100%')
     if err:
-        writelog(logfile, event='ERROR', params={'NUMBER':err, 'MESSAGE':'Failed to initialize ALSA volume.'})
+        writelog(logfile, event='ERROR', params={'number':err, 'message':'"Failed to initialize ALSA volume."'})
 
-    writelog(logfile, event='START')
+    writelog(logfile, event='START', params={'pid':os.getpid()})
 
     p = pa.PyAudio()
     astream = p.open(format=pa.paInt16, channels=1, rate=params['rate'], input=True)
 
-    # Initialize a run flag
     state = {'run':True}
+
     def halt(s,h):
+        writelog(logfile, event='STOP', params={'pid':os.getpid()})
+        os.remove(lockfile)
         state['run'] = False
+        
     # Catch a SIGTERM (termination) or SIGINT (keybaord interrupt)
     signal.signal(signal.SIGTERM, halt)
-    signal.signal(signal.SIGINT, halt)
+    #signal.signal(signal.SIGINT, halt)
     
-    while state['run']:
-        signal = array.array('h', astream.read(params['buffer']))
-        params['amplitude'] = int((max(signal) - min(signal)) / 2)
-        if params['amplitude'] > params['threshold']:
-            writelog(logfile, event='STRIKE', params=params)
-                
-    writelog(logfile, event='STOP')
+    try:
+        while state['run']:
+            v = array.array('h', astream.read(params['buffer']))
+            params['amplitude'] = int((max(v) - min(v)) / 2)
+            if params['amplitude'] > params['threshold']:
+                writelog(logfile, event='STRIKE', params=params)
+    except:
+        e = sys.exc_info()[1]
+        writelog(logfile, event='ERROR', params={'message':'"'+repr(e)+'"'})
+        halt(None, None)
+        exit(1)
+    exit(0)
