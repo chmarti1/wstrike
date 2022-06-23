@@ -1,0 +1,12 @@
+[Unit]
+Description=window strike monitoring service
+Wants=sound.target
+After=sound.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/wstrike
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
