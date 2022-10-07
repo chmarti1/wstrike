@@ -5,8 +5,10 @@ After=sound.target
 
 [Service]
 Type=simple
+User=wstrike
 ExecStart=/usr/local/bin/wstrike
-Restart=on-failure
+WorkingDirectory=/var/local/wstrike
+Restart=always
 
 [Install]
 WantedBy=multi-user.target
