@@ -1,0 +1,13 @@
+[Unit]
+Description=window strike administration service
+StartFailureAction=reboot
+
+[Service]
+Type=simple
+User=root
+ExecStart=/usr/local/bin/wsadmin
+WorkingDirectory=/var/local/wstrike
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
