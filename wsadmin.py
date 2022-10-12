@@ -40,6 +40,23 @@ Each entry takes the format:
 def halt(s,h):
     state['run'] = False
     
+def config():
+    # Read the configuration file
+    try:
+        ii = -1
+        with open(configfile, 'r') as ff:
+            for ii, thisline in enumerate(ff):
+                thisline = thisline.strip()
+                if len(thisline)>0 and not thisline.startswith('#'):
+                    param, value = thisline.split()
+                    if param not in params:
+                        raise Exception('Unrecognized parameter: ' + param)
+                    params[param] = value
+    except:
+        e = sys.exc_info()[1]
+        writelog(logfile, f'ERROR parsing line {ii} in configuration file: '+ configfile)
+        writelog(logfile, repr(e))
+    
     
 def sync(drive):
     # Clear a flag indicating whether to restart the machine
@@ -107,10 +124,13 @@ def sync(drive):
                 if os.system(f'mv {source} {target};chown {wsuser}:{wsuser} {target};chmod 660 {target}'):
                     writelog(logfile, 'ERROR Operation failed')
                 restart = True
+                # Reload the configuration and update the supplicant file
+                config()
+                wifi()
         except:
             e = sys.exc_info()[1]
             writelog(logfile, 'ERROR durring PUT: '+repr(e))
-    # Unmount it
+    # Unmount the usb drive
     if mounted:
         os.system(f'umount {mnt}')
         
@@ -118,53 +138,37 @@ def sync(drive):
         os.system('shutdown -r now')
 
     
+def wifi():
+    try:
+        writelog(logfile, 'Updating wpa_supplicant for ssid: ' + params['wifi_ssid'])
+        source = '/etc/wpa_supplicant/wpa_supplicant.conf'
+        target = '/etc/wpa_supplicant/wpa_supplicant._conf'
+        # We'll make a new configuration file and overwrite the old
+        # as the last step
+        with open(target, 'w') as tf:
+            with open(source, 'r') as sf:
+                # Copy up to the first network definition
+                for thisline in sf:
+                    if thisline.startswith('network'):
+                        break
+                    tf.write(thisline)
+            # We're done with the source file, so close it
+            tf.write(f'network={{\n\tssid="{params["wifi_ssid"]}"\n\tpsk="{params["wifi_key"]}"\n\tkey_mgmt=WPA-PSK\n}}\n')
+        # Finally, overwrite the old
+        shutil.move(target, source)
+        
+    except:
+        e = sys.exc_info()[1]
+        writelog(logfile, f'ERROR updating wpa_supplicant: ' + repr(e))
+
+    
 
 if __name__ == '__main__':
     signal.signal(signal.SIGTERM, halt)
     # Log the service coming online
     writelog(logfile, f'START pid={os.getpid()}')
-    
-    # Read the configuration file
-    try:
-        ii = -1
-        with open(configfile, 'r') as ff:
-            for ii, thisline in enumerate(ff):
-                thisline = thisline.strip()
-                if len(thisline)>0 and not thisline.startswith('#'):
-                    param, value = thisline.split()
-                    if param not in params:
-                        raise Exception('Unrecognized parameter: ' + param)
-                    params[param] = value
-    except:
-        e = sys.exc_info()[1]
-        writelog(logfile, f'ERROR parsing line {ii} in configuration file: '+ configfile)
-        writelog(logfile, repr(e))
-    
-    # Check for a configured wifi interface
-    if params['wifi_ssid'] and params['wifi_key']:
-        try:
-            writelog(logfile, 'Attempting to configure wifi ssid: ' + params['wifi_ssid'])
-            err = os.system('ifconfig wlan0 down')
-            source = '/etc/wpa_supplicant/wpa_supplicant.conf'
-            target = '/etc/wpa_supplicant/wpa_supplicant._conf'
-            # We'll make a new configuration file and overwrite the old
-            # as the last step
-            with open(target, 'w') as tf:
-                with open(source, 'r') as sf:
-                    # Copy up to the first network definition
-                    for thisline in sf:
-                        if thisline.startswith('network'):
-                            break
-                        tf.write(thisline)
-                # We're done with the source file, so close it
-                tf.write(f'network={{\n\tssid="{params["wifi_ssid"]}"\n\tpsk="{params["wifi_key"]}"\n\tkey_mgmt=WPA-PSK\n}}\n')
-            # Finally, overwrite the old
-            shutil.move(target, source)
-            err = os.system('ifconfig wlan0 down;sleep 2;ifconfig wlan0 up')
-            
-        except:
-            e = sys.exc_info()[1]
-            writelog(logfile, f'ERROR configuring wifi interface: ' + repr(e))
+    config()
+    wifi()
     
     # Service loop
     while state['run']:
