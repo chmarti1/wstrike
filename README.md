@@ -1,33 +1,17 @@
 # WSTRIKE
 
-Window strike monitoring utility
-```bash
-$ wstrike [ACTION [OPTIONS...]]
-```
+Window strike monitoring service
 
 ## ABOUT WSTRIKE
-The window strike monitoring utility monitors for bird strikes on a 
-window using a piezo accelerometer fed through an audio input.  When run
-normally, with no options, wstrike runs silently until a strike event
-occurs, when it logs an event in the wstrike.log file.
-```bash
-$ wstrike &
-```
-Adding the & at the end of the command causes it to fork off and run in
-the background without blocking the terminal.
+The window strike monitoring utility is designed for installation on a Raspberry Pi.  The system is designed to monitor for bird strikes on a window using a piezo accelerometer fed through a USB audio input.  
 
-For any other than the default behavior, wstrike can be called with an 
-action and a series of options.  See the ACTIONS section below.
+Its function is split between two `systemd` services: `wstrike` and `wsadmin`.  `wstrike` is responsible for streaming the audio input and logging events.  `wsadmin` is responsible for communication.
 
 
 ## ABOUT WSTRIKE'S DESIGN
-For many reasons, it would make sense for this to be a daemon registered
-with systemd, running quietly in the background automatically on boot.
-However, the easiest way to gain access to the sound stream for sensor
-input is to run in user space.  As a result, for the time being, this
-is merely an executable script that lives in $HOME/bin, and is 
-automatically executed by $HOME/.profile when the user logs in.
+Installation creates a `wstrike` user and group.  The `wstrike` servie will run as the `wstrike` user, and `wsadmin` runs as `root`.  
 
+After install, all of the wstrike system files are copied to the wstrike home directory, `/var/local/wstrike`.  
 
 ## INSTALLING
 Make sure `python 3.X` is installed.  On a Raspberry pi running Raspbian,

@@ -40,4 +40,4 @@ remove:
 	rm $(ADMBIN)
 	rm $(SERVICE)
 	rm $(ADMSERVICE)
-
+	systemctl daemon-reload
