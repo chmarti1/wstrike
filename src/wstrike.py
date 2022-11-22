@@ -14,7 +14,9 @@ import os,signal,sys,shutil
 homedir = '/var/local/wstrike'
 logfile = os.path.join(homedir, 'wstrike.log')
 paramfile = os.path.join(homedir, 'wstrike.conf')
-pcm_device = 'plughw:CARD=Device,DEV=0'
+#pcm_device = 'plughw:CARD=Device,DEV=0'
+card_name = 'USB Audio Device'
+card_mixer_control = 'Mic'
 
 # Initialize the global state variables
 state = {'run':True}
@@ -115,12 +117,29 @@ if __name__ == '__main__':
             writelog(logfile, event='STOP', params={'pid':os.getpid()})
             exit(-1)
 
+
+    # Scan for the USB Audio Device
+    card_index = -1
+    card_name_long = ''
+    for ii in aa.card_indexes():
+        name = aa.card_name(ii)
+        # If the name matches, this is the correct device
+        if name[0] == card_name:
+            card_index = aa.card_indexes()[ii]
+            card_name_long = name[1]
+            break
+    if card_index < 0:
+        writelog(logfile, 'ERROR', params={'message':'Did not find an audio device with name: ' + card_name})
+        writelog(logfile, 'ERROR', params={'message':'Attempting to start with default settings - unlikely to succeed!'})
+    else:
+        writelog(logfile, 'START', params={'message':'Found audio device: ' + card_name_long})
+
     # Initialize the audio interface through ALSA
     pcm = None
     try:
         pcm = aa.PCM(type=aa.PCM_CAPTURE, 
-                device=pcm_device, 
-                channels=1, 
+                cardindex=card_index,
+                channels=1,
                 format=aa.PCM_FORMAT_S16_LE,
                 rate=params['rate'],
                 periodsize=params['buffer'])
@@ -132,7 +151,7 @@ if __name__ == '__main__':
     # Set the capture volume to maximum
     try:
         # Set the volume to max
-        m = aa.Mixer('Capture')
+        m = aa.Mixer(control=card_mixer_control, cardindex=card_index)
         m.setvolume(100)
     except:
         writelog(logfile, 'ERROR', params={'message':'Failed to set the audio capture volume.'})

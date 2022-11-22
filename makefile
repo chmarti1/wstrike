@@ -12,25 +12,25 @@ install:
 	adduser --system --home $(WSHOME) --group $(WSUSER)
 	adduser wstrike audio
 	# Set up the wstrike home directory
-	mkdir $(WSMNT)
+	if [ ! -d $(WSMNT) ]; then mkdir $(WSMNT); fi
 	chown root:root $(WSMNT)
 	touch $(WSHOME)/wstrike.log
 	touch $(WSHOME)/wsadmin.log
 	chown $(WSUSER):$(WSUSER) $(WSHOME)/*.log
 	chmod 644 $(WSHOME)/*.log
 	# Install the binaries
-	cp wstrike.py $(BIN)
+	cp src/wstrike.py $(BIN)
 	chmod 755 $(BIN)
 	chown root:root $(BIN)
-	cp wsadmin.py $(ADMBIN)
+	cp src/wsadmin.py $(ADMBIN)
 	chmod 750 $(ADMBIN)
 	chown root:root $(BIN)
 	# Install the services
-	cp wstrike.service $(SERVICE)
+	cp src/wstrike.service $(SERVICE)
 	chown root:root $(SERVICE)
 	chmod 644 $(SERVICE)
 	systemctl enable wstrike.service
-	cp wsadmin.service $(ADMSERVICE)
+	cp src/wsadmin.service $(ADMSERVICE)
 	chown root:root $(ADMSERVICE)
 	chmod 644 $(ADMSERVICE)
 	systemctl enable wsadmin.service
