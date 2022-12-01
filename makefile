@@ -7,6 +7,7 @@ SERVICE=/etc/systemd/system/wstrike.service
 ADMSERVICE=/etc/systemd/system/wsadmin.service
 
 install:
+	apt install -y libasound2 libasound2-dev
 	python3 -m pip install --upgrade pip
 	python3 -m pip install --upgrade pyalsaaudio
 	adduser --system --home $(WSHOME) --group $(WSUSER)
@@ -25,6 +26,10 @@ install:
 	cp src/wsadmin.py $(ADMBIN)
 	chmod 750 $(ADMBIN)
 	chown root:root $(BIN)
+	# Install configuration files
+	cp src/*.conf $(WSHOME)
+	chmod 644 $(WSHOME)/*.conf
+	chown wstrike:wstrike $(WSHOME)/*.conf
 	# Install the services
 	cp src/wstrike.service $(SERVICE)
 	chown root:root $(SERVICE)
@@ -34,7 +39,10 @@ install:
 	chown root:root $(ADMSERVICE)
 	chmod 644 $(ADMSERVICE)
 	systemctl enable wsadmin.service
+
 remove:
+	systemctl stop wstrike
+	systemctl stop wsadmin
 	deluser --remove-home wstrike
 	rm $(BIN)
 	rm $(ADMBIN)

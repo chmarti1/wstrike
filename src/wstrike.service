@@ -2,9 +2,6 @@
 Description=window strike monitoring service
 Wants=sound.target
 After=sound.target
-StartLimitIntervalSec=120
-StartLimitBurst=12
-StartFailureAction=/usr/sbin/reboot
 
 [Service]
 Type=simple
