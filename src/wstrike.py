@@ -17,6 +17,8 @@ paramfile = os.path.join(homedir, 'wstrike.conf')
 #pcm_device = 'plughw:CARD=Device,DEV=0'
 card_name = 'USB Audio Device'
 card_mixer_control = 'Mic'
+status_every = 3600
+version = '0.2'
 
 # Initialize the global state variables
 state = {'run':True}
@@ -63,7 +65,7 @@ def halt(s,h):
 
 # Finally, the script...
 if __name__ == '__main__':
-    writelog(logfile, 'START', params={'pid':os.getpid()})
+    writelog(logfile, 'START', params={'pid':os.getpid(), 'version':version})
 
     # Catch a SIGTERM (termination) or SIGINT (keybaord interrupt)
     signal.signal(signal.SIGTERM, halt)
@@ -130,9 +132,9 @@ if __name__ == '__main__':
             break
     if card_index < 0:
         writelog(logfile, 'ERROR', params={'message':'Did not find an audio device with name: ' + card_name})
-        writelog(logfile, 'ERROR', params={'message':'Attempting to start with default settings - unlikely to succeed!'})
+        writelog(logfile, 'STATUS', params={'message':'Attempting to start with default settings - unlikely to succeed!'})
     else:
-        writelog(logfile, 'START', params={'message':'Found audio device: ' + card_name_long})
+        writelog(logfile, 'STATUS', params={'message':'Found audio device: ' + card_name_long})
 
     # Initialize the audio interface through ALSA
     pcm = None
@@ -143,10 +145,12 @@ if __name__ == '__main__':
                 format=aa.PCM_FORMAT_S16_LE,
                 rate=params['rate'],
                 periodsize=params['buffer'])
+        failed = False
     except:
-        writelog(logfile, 'ERROR', params={'message':'Failed to initialize the audio interface.'})
+        writelog(logfile, 'ERROR', params={'message':'Failed to initialize audio.'})
         writelog(logfile, 'STOP', params={'pid':os.getpid()})
         exit(-1)
+
         
     # Set the capture volume to maximum
     try:

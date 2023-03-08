@@ -71,6 +71,8 @@ def sync(drive):
     get = os.path.join(mnt, 'wsadmin', 'get')
     # Check for a wsadmin/get directory
     if os.path.isdir(get):
+        # Log the transfer
+        writelog(logfile, 'STATUS Transferring to USB wsadmin/get')
         # Schedule a list of files to transfer
         schedule = [
             [os.path.join(wshome, 'wstrike.conf'), os.path.join(get, 'wstrike.conf')],
