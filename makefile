@@ -39,6 +39,8 @@ install:
 	chown root:root $(ADMSERVICE)
 	chmod 644 $(ADMSERVICE)
 	systemctl enable wsadmin.service
+	# Force UTC timezone
+	timedatectl set-timezone UTC
 
 remove:
 	systemctl stop wstrike

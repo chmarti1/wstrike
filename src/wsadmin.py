@@ -6,17 +6,17 @@ import time
 
 state = {'run':True}
 params = {
-    'wifi_ssid':None, 
-    'wifi_key':None,
     'remote_url':None,
     'remote_user':None,
     'remote_password':None
     }
-interval = 10
-wshome = '/var/local/wstrike'
+interval = 10                           # Run the wsadmin services every 10 seconds
+inet_interval = 24*3600 / interval      # Check the network every 24 hours
+wshome = '/var/local/wstrike'           
 wsuser = 'wstrike'
 logfile = os.path.join(wshome, 'wsadmin.log')
 configfile = os.path.join(wshome, 'wsadmin.conf')
+wpaconfig = '/etc/wpa_supplicant/wpa_supplicant.conf'
 mnt = os.path.join(wshome, 'mnt')
 
 
@@ -57,6 +57,20 @@ def config():
         writelog(logfile, f'ERROR parsing line {ii} in configuration file: '+ configfile)
         writelog(logfile, repr(e))
     
+def testinet():
+    try:
+        cmd = 'ping -c 1 -W 2 ipinfo.io'
+        err = os.system(cmd)
+        if err:
+            writelog(logfile, f'STATUS Ping failure ({err}): ' + cmd)
+        else:
+            writelog(logfile, f'STATUS Ping success: ' + cmd)
+    except:
+        e = sys.exc_info()[1]
+        writelog(logfile, f'ERROR testing internet connection.')
+        writelog(logfile, repr(e))
+    
+    
     
 def sync(drive):
     # Clear a flag indicating whether to restart the machine
@@ -79,7 +93,8 @@ def sync(drive):
             [os.path.join(wshome, 'wstrike.log'), os.path.join(get, 'wstrike.log')],
             ['/usr/local/bin/wstrike', os.path.join(get, 'wstrike.py')],
             [configfile, os.path.join(get, 'wsadmin.conf')],
-            [logfile, os.path.join(get, 'wsadmin.log')]]
+            [logfile, os.path.join(get, 'wsadmin.log')],
+            [wpaconfig, os.path.join(get, 'wpa_supplicant.conf')]]
         for source,target in schedule:
             try:
                 shutil.copy(source,target)
@@ -126,9 +141,13 @@ def sync(drive):
                 if os.system(f'mv {source} {target};chown {wsuser}:{wsuser} {target};chmod 660 {target}'):
                     writelog(logfile, 'ERROR Operation failed')
                 restart = True
-                # Reload the configuration and update the supplicant file
-                config()
-                wifi()
+            if 'wpa_supplicant.conf' in contents:
+                source = os.path.join(put, 'wpa_supplicant.conf')
+                target = wpaconfig
+                writelog(logfile, f'Moving {source} to {target}')
+                if os.system(f'mv {source} {target};chown root:root {target};chmod 600 {target}'):
+                    writelog(logfile, 'ERROR Operation failed')
+                restart = True
         except:
             e = sys.exc_info()[1]
             writelog(logfile, 'ERROR durring PUT: '+repr(e))
@@ -140,49 +159,42 @@ def sync(drive):
         os.system('shutdown -r now')
 
     
-def wifi():
-    try:
-        writelog(logfile, 'Updating wpa_supplicant for ssid: ' + params['wifi_ssid'])
-        source = '/etc/wpa_supplicant/wpa_supplicant.conf'
-        target = '/etc/wpa_supplicant/wpa_supplicant._conf'
-        # We'll make a new configuration file and overwrite the old
-        # as the last step
-        with open(target, 'w') as tf:
-            with open(source, 'r') as sf:
-                # Copy up to the first network definition
-                for thisline in sf:
-                    if thisline.startswith('network'):
-                        break
-                    tf.write(thisline)
-            # We're done with the source file, so close it
-            tf.write(f'network={{\n\tssid="{params["wifi_ssid"]}"\n\tpsk="{params["wifi_key"]}"\n\tkey_mgmt=WPA-PSK\n}}\n')
-        # Finally, overwrite the old
-        shutil.move(target, source)
-        
-    except:
-        e = sys.exc_info()[1]
-        writelog(logfile, f'ERROR updating wpa_supplicant: ' + repr(e))
-
-    
 
 if __name__ == '__main__':
     signal.signal(signal.SIGTERM, halt)
     # Log the service coming online
-    writelog(logfile, f'START pid={os.getpid()}')
+    writelog(logfile, f'START pid={os.getpid()} device={os.uname()[1]}')
     config()
-    wifi()
+    
+    # A synclock will prevent repeated synchronizations if a USB key is left in
+    synclock = False
+    # This counter will keep track of when it's time to test the network
+    inet_counter = 6
     
     # Service loop
     while state['run']:
         # Check for USB partitions
         source = '/dev/disk/by-path'
-        drives = os.listdir('/dev/disk/by-path')
+        drives = os.listdir(source)
         # Limit the list to USB devices that have a partition number
+        found_usb = False
         for d in drives:
             # If this appears to be a USB drive partition
             if 'usb' in d and 'part' in d:
-                sync(os.path.join(source, d))
-                
+                # Mark that we found a USB drive
+                found_usb = True
+                # If the synclock is free, perform the sync
+                if not synclock:
+                    sync(os.path.join(source, d))
+        # Maintain the synclock as long as there is a usb present
+        synclock = found_usb
+        
+        # Check the internet connection
+        if inet_counter <= 0:
+            inet_counter = inet_interval
+            testinet()
+        # Decrement the counter
+        inet_counter -= 1
         
         # Go to sleep for a while
         time.sleep(interval)

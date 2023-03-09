@@ -13,7 +13,11 @@ Its function is split between two `systemd` services: `wstrike` and `wsadmin`.
 
 
 ## ABOUT WSTRIKE'S DESIGN
-Installation creates a `wstrike` user and group.  The `wstrike` servie will 
+Installation with 
+```bash
+$ sudo make install
+```
+creates a `wstrike` user and group.  The `wstrike` servie will 
 run as the `wstrike` user, and `wsadmin` runs as `root`.  
 
 The `wstrike` user has a home directory at `/usr/local/wstrike`, where the
@@ -28,7 +32,10 @@ USB key has a directory called `wsadmin`, the service automatically looks
 for `wsadmin/get` and `wsadmin/put`.  See USB communication below for more
 information.
 
-## INSTALLING
+Alternately, an image of a RPi SD with the entire system already 
+successfully configured is available in the `./image/` directory.
+
+## Installing from makefile
 Make sure `python 3.X` is installed.  On a Raspberry pi running Raspbian,
 this will be the case by default.
 
@@ -63,6 +70,10 @@ This performs a number of steps:
 To be certain everything has gone as planned, it may be helpful to restart
 the system after installation.
 
+## Installing from image
+
+Use the directions in the `./image/README.md` file.
+
 ## USB Communication
 
 When any USB key is inserted into the Pi, the `wsadmin` service automatically 
@@ -76,6 +87,7 @@ the directory:
 - `wstrike.log` : The primary data file for all strike events
 - `wsadmin.log` : A log file for administrative events, update, etc.
 - `wstrike.py` : A copy of the current wstrike script in use
+- `wpa_supplicant.conf` : A copy of the system's wifi configuration file
 
 Then, if `./wsadmin/put` is found, the oposite is done for any files that are 
 found there.  This is available as a mechanism to update or overwrite existing
@@ -85,6 +97,8 @@ is NOT available to update `wsadmin`.
 
 Once a "put" operation is successful, the RPi should automatically restart to
 force all changes to take effect.
+
+See also the `./wsadmin/README.md` for more information.
 
 ## WSTRIKE.CONF
 
@@ -101,8 +115,28 @@ meaning of the various parameters.
 
 ## WSADMIN.CONF
 
-Though this file is required, none of its directives are currently required.  It includes
-parameters that are intended for future use - configuring wifi SSID and password
-directives and a remote server URL and credentials.  The SSID and password 
-functionality is implemented but only lightly tested - it is not currently 
-recommended to rely on this for connecting the Pi.
+Though this file is required, none of its directives are currently used.  These
+parameters that are intended for future use with remote server connections.  
+
+## WPA_SUPPLICANT.CONF
+
+The `wpa_supplicant.conf` file is used to configure the wifi connection.
+This is not a part of the WSTRIKE system - instead it is a normal part
+of the Linux network configuration system.  A typical file might appear:
+```
+ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
+update_config=1
+country=US
+
+network={
+	ssid="YOUR_WIFI_NETWORK_ID_HERE"
+	psk="YOUR_WIFI_PASSWORD_HERE"
+	key_mgmt=WPA-PSK
+}
+```
+
+You should edit the ssid and psk entries as necessary to allow the pi to
+connect to your wifi network.  Make sure to leave the quotation marks.
+For more information, see [the Raspberry Pi documentaiton](https://www.raspberrypi.com/documentation/computers/configuration.html#using-the-command-line).
+
+

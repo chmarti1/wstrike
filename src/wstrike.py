@@ -18,7 +18,8 @@ paramfile = os.path.join(homedir, 'wstrike.conf')
 card_name = 'USB Audio Device'
 card_mixer_control = 'Mic'
 status_every = 3600
-version = '0.2'
+strike_rate = 100       # Excessive strike filter
+version = '0.3'
 
 # Initialize the global state variables
 state = {'run':True}
@@ -65,7 +66,7 @@ def halt(s,h):
 
 # Finally, the script...
 if __name__ == '__main__':
-    writelog(logfile, 'START', params={'pid':os.getpid(), 'version':version})
+    writelog(logfile, 'START', params={'device':os.uname()[1], 'pid':os.getpid(), 'version':version})
 
     # Catch a SIGTERM (termination) or SIGINT (keybaord interrupt)
     signal.signal(signal.SIGTERM, halt)
@@ -162,12 +163,34 @@ if __name__ == '__main__':
         
 
     try:
+        # Use a rate counter to filter excessive strike events
+        strike_count = 0
+        strike_block = False
+        
         while state['run']:
+            # This takes time
             N,v = pcm.read()
+            # Convert raw samples into integer array data
             v = array.array('h',v)
+            # Calculate the amplitude for the sample window
             params['amplitude'] = int((max(v) - min(v)))
             if params['amplitude'] > params['threshold']:
-                writelog(logfile, event='STRIKE', params=params)
+                # Filter excessive strike events
+                if not strike_block:
+                    # Write to the log
+                    writelog(logfile, event='STRIKE', params=params)
+                # increment the strike counter
+                strike_count = min(strike_rate, strike_count+1)
+            else:
+                # decrement the strike counter
+                strike_count = max(0, strike_count-1)
+            # Maintain the excessive strike filter
+            if strike_block and strike_count <= 0:
+                strike_block = False
+                writelog(logfile, event='STATUS', params={'message': 'Releasing the excessive strike filter'})
+            elif strike_count > strike_rate:
+                strike_block = True
+                writelog(logfile, event='STATUS', params={'message': 'Halting due to excessive strikes'})
     except:
         e = sys.exc_info()[1]
         writelog(logfile, event='ERROR', params={'message':'"'+repr(e)+'"'})
