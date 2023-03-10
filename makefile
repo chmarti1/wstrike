@@ -45,9 +45,10 @@ install:
 remove:
 	systemctl stop wstrike
 	systemctl stop wsadmin
-	deluser --remove-home wstrike
 	rm $(BIN)
 	rm $(ADMBIN)
 	rm $(SERVICE)
 	rm $(ADMSERVICE)
+	rm -rf $(WSHOME)
+	deluser wstrike
 	systemctl daemon-reload
