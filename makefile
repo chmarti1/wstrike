@@ -15,8 +15,6 @@ install:
 	# Set up the wstrike home directory
 	if [ ! -d $(WSMNT) ]; then mkdir $(WSMNT); fi
 	chown root:root $(WSMNT)
-	touch $(WSHOME)/wstrike.log
-	touch $(WSHOME)/wsadmin.log
 	chown $(WSUSER):$(WSUSER) $(WSHOME)/*.log
 	chmod 644 $(WSHOME)/*.log
 	# Install the binaries
