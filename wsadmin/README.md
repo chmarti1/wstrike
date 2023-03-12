@@ -71,8 +71,16 @@ buffer = 22050
 threshold = 1024
 ```
 
+## WSADMIN.CONF
+
+As of version 0.3, all of the directives in the `wsadmin.conf` file are ignored.  These features are reserved for future functionality that will allow `wsadmin` to 
+```
+#remote_url **SERVER URL HERE**
+#remote_user **SERVER USERNAME HERE**
+#remote_password **SERVER PASSWORD HERE**
+```
+
 ## WPA_SUPPLICANT.CONF
-See [this page](https://www.raspberrypi.com/documentation/computers/configuration.html#using-the-command-line) for more information.
 ```
 ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
 update_config=1
@@ -84,3 +92,9 @@ network={
 	key_mgmt=WPA-PSK
 }
 ```
+
+You should edit the ssid and psk entries as necessary to allow the pi to
+connect to your wifi network.  Make sure to leave the quotation marks.
+For more information, see [the Raspberry Pi documentaiton](https://www.raspberrypi.com/documentation/computers/configuration.html#using-the-command-line),
+or the [Linux man pages](https://linux.die.net/man/5/wpa_supplicant.conf).
+A more detailed documentation is available (here)[https://man.freebsd.org/cgi/man.cgi?wpa_supplicant.conf(5)].

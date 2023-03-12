@@ -1,8 +1,8 @@
-# WSTRIKE
+# WSTRIKE  
 
 Window strike monitoring service
 
-## ABOUT WSTRIKE
+## ABOUT WSTRIKE  
 The window strike monitoring utility is designed for installation on a 
 Raspberry Pi.  The system is designed to monitor for bird strikes on a 
 window using a piezo accelerometer fed through a USB audio input.  
@@ -11,8 +11,8 @@ Its function is split between two `systemd` services: `wstrike` and `wsadmin`.
 `wstrike` is responsible for streaming the audio input and logging events.  
 `wsadmin` is responsible for configuration and communication of data.
 
+## ABOUT WSTRIKE'S DESIGN  
 
-## ABOUT WSTRIKE'S DESIGN
 Installation with 
 ```bash
 $ sudo make install
@@ -35,7 +35,8 @@ information.
 Alternately, an image of a RPi SD with the entire system already 
 successfully configured is available in the `./image/` directory.
 
-## Installing from makefile
+## Installing from makefile  
+
 Make sure `python 3.X` is installed.  On a Raspberry pi running Raspbian,
 this will be the case by default.
 
@@ -59,6 +60,7 @@ The `sudo` before the `make install` command executes this an administrator.
 By default the `pi` user should be allowed to run this command in RaspbianOS.
 
 This performs a number of steps:  
+- Apt installs libasound2 and its headers (requires internet)
 - The python package manager, `pip` is upgraded (requires internet)
 - The `pyalsaaudio` package and its dependencies is installed (requires internet)
 - The `wstrike` system user is created with a home at `/usr/local/wstrike`
@@ -70,11 +72,11 @@ This performs a number of steps:
 To be certain everything has gone as planned, it may be helpful to restart
 the system after installation.
 
-## Installing from image
+## Installing from image  
 
 Use the directions in the `./image/README.md` file.
 
-## USB Communication
+## USB Communication  
 
 When any USB key is inserted into the Pi, the `wsadmin` service automatically 
 inspects it for a directory named `./wsadmin/`.  Inside that directory, two 
@@ -100,7 +102,7 @@ force all changes to take effect.
 
 See also the `./wsadmin/README.md` for more information.
 
-## WSTRIKE.CONF
+## WSTRIKE.CONF  
 
 The configuration files are plain Python code that is used to define parameters 
 that are expected by their executables.  `wstrike.conf` is used to define the 
@@ -113,12 +115,12 @@ If there is a strong signal, it is logged as a STRIKE event along with a timesta
 The `wstrike.conf` file that installs by default is heavily commented to explain the
 meaning of the various parameters.
 
-## WSADMIN.CONF
+## WSADMIN.CONF  
 
 Though this file is required, none of its directives are currently used.  These
 parameters that are intended for future use with remote server connections.  
 
-## WPA_SUPPLICANT.CONF
+## WPA_SUPPLICANT.CONF  
 
 The `wpa_supplicant.conf` file is used to configure the wifi connection.
 This is not a part of the WSTRIKE system - instead it is a normal part
@@ -137,6 +139,6 @@ network={
 
 You should edit the ssid and psk entries as necessary to allow the pi to
 connect to your wifi network.  Make sure to leave the quotation marks.
-For more information, see [the Raspberry Pi documentaiton](https://www.raspberrypi.com/documentation/computers/configuration.html#using-the-command-line).
-
-
+For more information, see [the Raspberry Pi documentaiton](https://www.raspberrypi.com/documentation/computers/configuration.html#using-the-command-line),
+or the [Linux man pages](https://linux.die.net/man/5/wpa_supplicant.conf).
+A more detailed documentation is available (here)[https://man.freebsd.org/cgi/man.cgi?wpa_supplicant.conf(5)].
