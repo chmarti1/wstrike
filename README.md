@@ -21,19 +21,16 @@ creates a `wstrike` user and group.  The `wstrike` servie will
 run as the `wstrike` user, and `wsadmin` runs as `root`.  
 
 The `wstrike` user has a home directory at `/usr/local/wstrike`, where the
-system's configuration and log files can be found.  Scripts `wsadmin` and
-`wsadmin` are installed in `/usr/local/bin/`, and there are also systemd
-service configurations located in `/etc/systemd/system/` named `wstrike.service`
-and `wsadmin.service`.  The scripts are plain Python.
+system's configuration and log files can be found.  Executable plain Python
+scripts `wstrike` and `wsadmin` are installed in `/usr/local/bin/`, and 
+there are also systemd service configurations located in 
+`/etc/systemd/system/` named `wstrike.service` and `wsadmin.service`.
 
 The home directory includes a directory called `mnt`, where `wsadmin` will 
 automatically mount any devices that appear to be USB keys.  If root of the 
 USB key has a directory called `wsadmin`, the service automatically looks 
 for `wsadmin/get` and `wsadmin/put`.  See USB communication below for more
 information.
-
-Alternately, an image of a RPi SD with the entire system already 
-successfully configured is available in the `./image/` directory.
 
 ## Installing from makefile  
 
@@ -67,18 +64,27 @@ This performs a number of steps:
 - The home directory is populated with the various log and configuration files
 - The `wstrike` and `wsadmin` scripts are placed in `/usr/local/bin`
 - The `wstrike.service` and `wsadmin.service` configurations are installed in `/etc/systemd/system/`
-- The new services are enabled
+- The new services are enabled 
 
-To be certain everything has gone as planned, it may be helpful to restart
-the system after installation.
+Once installation is successful, cycle power to the device or force a restart.
+The services should start automatically durring boot, and their status should be
+available by checking their log files:
+```bash
+$ cat /var/local/wstrike/wstrike.log
+  ...
+$ cat /var/local/wstrike/wsadmin.log
+  ...
+```
 
 ## Installing from image  
 
-Use the directions in the `./image/README.md` file.
+For mass distribution, it is better to copy an image of an SD card with a working
+installation already done.  That can be done in Windows or Linux using the `dd`
+utility.  Documenting that procedure is for a different readme.
 
 ## USB Communication  
 
-When any USB key is inserted into the Pi, the `wsadmin` service automatically 
+Once installation is successful, the `wsadmin` service automatically 
 inspects it for a directory named `./wsadmin/`.  Inside that directory, two 
 special directories are expected: `./wsadmin/get/` and `./wsadmin/put/`.
 
@@ -98,7 +104,8 @@ file is used to overwrite `/usr/local/bin/wstrike`.  Note that the same option
 is NOT available to update `wsadmin`.  
 
 Once a "put" operation is successful, the RPi should automatically restart to
-force all changes to take effect.
+force all changes to take effect.  Note that the status LEDs don't necessarily
+turn off when that happens.
 
 See also the `./wsadmin/README.md` for more information.
 
