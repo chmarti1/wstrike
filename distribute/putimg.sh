@@ -1,8 +1,8 @@
-#!/usr/bin/bash
+#!/bin/bash
 
-SOURCE="./ws0.img"
-TARGET=$1
-NUMBER=$2
+SOURCE=$1
+TARGET=$2
+NUMBER=$3
 HOSTNAME=ws${NUMBER}
 PASSWD=`openssl rand -base64 6`
 
@@ -20,6 +20,8 @@ fi
 mount $TARGET ./target
 # Set the host name
 echo $HOSTNAME > ./target/etc/hostname
+sed -i "s/127.0.1.1.*/127.0.1.1\t${HOSTNAME}/" ./target/etc/hosts
+
 # Unmount the drive
 umount target
 
