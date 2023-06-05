@@ -6,6 +6,14 @@ NUMBER=$3
 HOSTNAME=ws${NUMBER}
 PASSWD=`openssl rand -base64 6`
 
+echo "Write file ${SOURCE} to device ${TARGET} with name ${HOSTNAME}."
+echo -n "Are you sure? (y/n):"
+read go
+if [ ! ${go} = "y" ]; then
+    echo "Halting."
+    exit 0
+fi
+
 # Force unmount of the drive
 umount $TARGET
 
@@ -21,6 +29,8 @@ mount $TARGET ./target
 # Set the host name
 echo $HOSTNAME > ./target/etc/hostname
 sed -i "s/127.0.1.1.*/127.0.1.1\t${HOSTNAME}/" ./target/etc/hosts
+# Remove the log files
+rm ./target/var/local/wstrike/*.log
 
 # Unmount the drive
 umount target
