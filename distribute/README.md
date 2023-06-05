@@ -2,8 +2,14 @@
 
 The `putimg.sh` bash script accepts three command line arguments
 ```
-$ ./putimg.sh <source.img> <target.dev> <number>
+$ sudo ./putimg.sh ~/ws0.img /dev/mmcblk0 2
+[sudo] password for chris:         
+Write file /home/chris/ws0.img to device /dev/mmcblk0 with name ws2.
+Are you sure? (y/n):y
+umount: /dev/mmcblk0: not mounted.
 ```
+
+The `sudo` before the `putimg.sh` command forces the script to run as a priviledged user.  You will need those permissions to mount the device and perform the byte-wise write operation.
 
 The `<source>` is the image to copy.  Usually, it will be `ws0.img`.
 
