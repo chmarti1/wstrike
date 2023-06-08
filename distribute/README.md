@@ -15,7 +15,7 @@ umount: /dev/mmcblk0: not mounted.
 
 The `sudo` before the `putimg.sh` command forces the script to run as a priviledged user.  You will need those permissions to mount the device and perform the byte-wise write operation.
 
-The `<source>` is the image to copy.  Usually, it will be a path to find `ws0.img` somewhere on the local filesystem.
+The `<source>` is the image to copy.  Usually, it will be a path to find `ws0.img` somewhere on the local filesystem.  It can also be a compressed image, like `ws0.img.gz`.
 
 The `<target.dev>` is the device (drive) to write to.  On some systems, this will be `/dev/mmcblk0` or it might be `/dev/sda`.  This will be the system file representing the device being written.  *NOTE* that this should be the root device and NOT a device partition, like `/dev/mmcblk0p1` or `/dev/sda1`.
 
