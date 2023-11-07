@@ -180,7 +180,10 @@ if __name__ == '__main__':
         found_usb = False
         for d in drives:
             # If this appears to be a USB drive partition
-            if 'usb' in d and 'part' in d:
+            # Do not check for 'part' anymore - causes problems with non-partitioned USB drives
+            # Tested on drives with partitions - still seems to work without problems
+            #if 'usb' in d and 'part' in d:
+            if 'usb' in d:
                 # Mark that we found a USB drive
                 found_usb = True
                 # If the synclock is free, perform the sync
